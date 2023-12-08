@@ -7,11 +7,13 @@ from collections import deque
 from itertools import count
 import numpy as np
 import os
+import time
 
 # Configurações do jogo
 LARGURA, ALTURA = 640, 480
 TAMANHO_DA_SERPENTE = 20
 VELOCIDADE = 5
+TEMPO_MAXIMO_SEM_COMIDA = 60
 
 # Configurações de aprendizado por reforço
 GAMMA = 0.99
@@ -244,7 +246,12 @@ for episode in range(num_episodes):
             random.randint(0, (ALTURA-TAMANHO_DA_SERPENTE)//TAMANHO_DA_SERPENTE) * TAMANHO_DA_SERPENTE)
     score = 0
     state = get_state(snake, direction, food)
-    for t in count():
+
+    start_time = time.time()  # Armazena o tempo atual para iniciar o temporizador
+    last_food_time = start_time  # Armazena o tempo da última vez que a comida foi capturada
+
+    #for t in count():
+    while True:
         # Selecione e execute uma ação
         action = select_action(state, epsilon)
         next_state, reward, done, score, food, direction = take_action(snake, direction, action, last_direction, score, food)
@@ -266,6 +273,15 @@ for episode in range(num_episodes):
         
         # Aprenda com a experiência (Replay Buffer)
         loss = compute_td_loss(BATCH_SIZE)
+
+        # Verifica se a comida foi capturada e atualiza o tempo da última captura
+        if reward > 0:  # Supondo que uma recompensa positiva é dada por comer a comida
+            last_food_time = time.time()
+
+        # Verifica se o tempo máximo sem comer foi excedido
+        if time.time() - last_food_time > TEMPO_MAXIMO_SEM_COMIDA:
+            reward = -10 # Aplica uma penalidade
+            done = True  # Encerra o episódio
 
         # Salva o modelo após cada episódio ou após um número definido de episódios
         if episode % 100 == 0:  # Aqui estamos salvando a cada 100 episódios
