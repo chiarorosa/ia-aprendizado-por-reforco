@@ -113,36 +113,42 @@ def get_state(snake, direction, food):
 
 def take_action(snake, direction, action, score, food):
     # Atualiza a direção com base na ação
+    new_direction = direction
     if action == 0:  # CIMA
         if direction != 'BAIXO':
-            direction = 'CIMA'
+            new_direction = 'CIMA'
     elif action == 1:  # BAIXO
         if direction != 'CIMA':
-            direction = 'BAIXO'
+            new_direction = 'BAIXO'
     elif action == 2:  # ESQUERDA
         if direction != 'DIREITA':
-            direction = 'ESQUERDA'
+            new_direction = 'ESQUERDA'
     elif action == 3:  # DIREITA
         if direction != 'ESQUERDA':
-            direction = 'DIREITA'
+            new_direction = 'DIREITA'
 
-    # Atualiza a posição da serpente
-    x, y = snake[0]
-    if direction == 'CIMA':
-        y -= TAMANHO_DA_SERPENTE
-    elif direction == 'BAIXO':
-        y += TAMANHO_DA_SERPENTE
-    elif direction == 'ESQUERDA':
-        x -= TAMANHO_DA_SERPENTE
-    elif direction == 'DIREITA':
-        x += TAMANHO_DA_SERPENTE
-    new_head = (x, y)
+    # Atualiza a posição da serpente se a direção nova for diferente da atual
+    if new_direction != direction:
+        direction = new_direction
+        x, y = snake[0]
+        if direction == 'CIMA':
+            y -= TAMANHO_DA_SERPENTE
+        elif direction == 'BAIXO':
+            y += TAMANHO_DA_SERPENTE
+        elif direction == 'ESQUERDA':
+            x -= TAMANHO_DA_SERPENTE
+        elif direction == 'DIREITA':
+            x += TAMANHO_DA_SERPENTE
+        new_head = (x, y)
+    else:
+        # Se a direção não mudar, continua na mesma direção
+        new_head = snake[0]
 
     # Verifica colisão com as bordas
     done = x < 0 or x >= LARGURA or y < 0 or y >= ALTURA
 
     # Verifica colisão consigo mesma
-    if new_head in snake:
+    if new_head in snake[1:]:  # A cabeça não pode colidir com o primeiro segmento (ela mesma)
         done = True
 
     # Verifica se a comida foi consumida
@@ -152,6 +158,7 @@ def take_action(snake, direction, action, score, food):
         food = (random.randint(0, (LARGURA - TAMANHO_DA_SERPENTE) // TAMANHO_DA_SERPENTE) * TAMANHO_DA_SERPENTE,
                 random.randint(0, (ALTURA - TAMANHO_DA_SERPENTE) // TAMANHO_DA_SERPENTE) * TAMANHO_DA_SERPENTE)
     else:
+        # Remove o último segmento do corpo se a comida não foi consumida
         snake.pop()
 
     # Adiciona a nova cabeça à serpente
@@ -168,7 +175,6 @@ def take_action(snake, direction, action, score, food):
     next_state = get_state(snake, direction, food)
 
     return next_state, reward, done, score, food
-
 # Função de perda TD
 def compute_td_loss(batch_size):
     if len(replay_buffer) < batch_size:
