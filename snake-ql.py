@@ -13,7 +13,7 @@ import time
 LARGURA, ALTURA = 640, 480
 TAMANHO_DA_SERPENTE = 20
 VELOCIDADE = 5
-TEMPO_MAXIMO_SEM_COMIDA = 60
+TEMPO_MAXIMO_SEM_COMIDA = 30
 
 # Configurações de aprendizado por reforço
 GAMMA = 0.99
@@ -126,8 +126,9 @@ def take_action(snake, direction, action, last_direction, score, food):
     elif action == 3:  # DIREITA
         new_direction = 'DIREITA'
 
-    # Verifica se a nova direção é oposta à última direção e impede a mudança se a serpente tiver mais de 1 segmento
-    if len(snake) > 1:
+    # Verifica se a nova direção é oposta à última direção e 
+    # impede a mudança se a serpente tiver mais de 1 segmento
+    if len(snake) >= 0:
         if (new_direction == 'CIMA' and last_direction == 'BAIXO') or \
            (new_direction == 'BAIXO' and last_direction == 'CIMA') or \
            (new_direction == 'ESQUERDA' and last_direction == 'DIREITA') or \
@@ -173,7 +174,7 @@ def take_action(snake, direction, action, last_direction, score, food):
     # Define a recompensa
     reward = 0
     if eat:
-        reward = 10
+        reward = 20
     elif done:
         reward = -10
 
@@ -280,11 +281,11 @@ for episode in range(num_episodes):
 
         # Verifica se o tempo máximo sem comer foi excedido
         if time.time() - last_food_time > TEMPO_MAXIMO_SEM_COMIDA:
-            reward = -10 # Aplica uma penalidade
+            reward = -5 # Aplica uma penalidade
             done = True  # Encerra o episódio
 
         # Salva o modelo após cada episódio ou após um número definido de episódios
-        if episode % 100 == 0:  # Aqui estamos salvando a cada 100 episódios
+        if episode % 20 == 0:  # Aqui estamos salvando a cada 20 episódios
             torch.save(q_network.state_dict(), MODEL_FILENAME)
             # Se necessário, também salve o valor de epsilon aqui
             # ...
