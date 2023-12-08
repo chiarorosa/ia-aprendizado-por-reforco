@@ -230,10 +230,15 @@ if os.path.isfile(MODEL_FILENAME):
 
 last_direction = None
 
+def escolher_direcao_inicial():
+    direcoes = ['CIMA', 'BAIXO', 'ESQUERDA', 'DIREITA']
+    return random.choice(direcoes)
+
 # Loop principal do jogo e treinamento
 for episode in range(num_episodes):
     snake = [(LARGURA//2, ALTURA//2)]
-    direction = 'DIREITA'
+     # Escolhe uma direção inicial aleatória para a serpente
+    direction = escolher_direcao_inicial()  # 'CIMA', 'BAIXO', 'ESQUERDA' ou 'DIREITA' aleatoriamente
     last_direction = direction
     food = (random.randint(0, (LARGURA-TAMANHO_DA_SERPENTE)//TAMANHO_DA_SERPENTE) * TAMANHO_DA_SERPENTE,
             random.randint(0, (ALTURA-TAMANHO_DA_SERPENTE)//TAMANHO_DA_SERPENTE) * TAMANHO_DA_SERPENTE)
