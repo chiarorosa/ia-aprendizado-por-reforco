@@ -111,50 +111,54 @@ def get_state(snake, direction, food):
 
     return np.array(state, dtype=int)
 
-def take_action(snake, direction, action, score, food):
-    # Atualiza a direção com base na ação
-    new_direction = direction
+def take_action(snake, direction, action, last_direction, score, food):
+    # Suponha que 'direction' seja a direção atual e 'last_direction' a última direção confirmada.
+    
+    # Determina a nova direção proposta com base na ação
     if action == 0:  # CIMA
-        if direction != 'BAIXO':
-            new_direction = 'CIMA'
+        new_direction = 'CIMA'
     elif action == 1:  # BAIXO
-        if direction != 'CIMA':
-            new_direction = 'BAIXO'
+        new_direction = 'BAIXO'
     elif action == 2:  # ESQUERDA
-        if direction != 'DIREITA':
-            new_direction = 'ESQUERDA'
+        new_direction = 'ESQUERDA'
     elif action == 3:  # DIREITA
-        if direction != 'ESQUERDA':
-            new_direction = 'DIREITA'
+        new_direction = 'DIREITA'
 
-    # Atualiza a posição da serpente se a direção nova for diferente da atual
-    if new_direction != direction:
+    # Verifica se a nova direção é oposta à última direção e impede a mudança se a serpente tiver mais de 1 segmento
+    if len(snake) > 1:
+        if (new_direction == 'CIMA' and last_direction == 'BAIXO') or \
+           (new_direction == 'BAIXO' and last_direction == 'CIMA') or \
+           (new_direction == 'ESQUERDA' and last_direction == 'DIREITA') or \
+           (new_direction == 'DIREITA' and last_direction == 'ESQUERDA'):
+            new_direction = last_direction  # impede a mudança para a direção oposta
+
+    # Atualiza a direção atual com a nova direção se não for oposta
+    if new_direction != last_direction:
         direction = new_direction
-        x, y = snake[0]
-        if direction == 'CIMA':
-            y -= TAMANHO_DA_SERPENTE
-        elif direction == 'BAIXO':
-            y += TAMANHO_DA_SERPENTE
-        elif direction == 'ESQUERDA':
-            x -= TAMANHO_DA_SERPENTE
-        elif direction == 'DIREITA':
-            x += TAMANHO_DA_SERPENTE
-        new_head = (x, y)
-    else:
-        # Se a direção não mudar, continua na mesma direção
-        new_head = snake[0]
 
-    # Verifica colisão com as bordas
+    # Atualiza a posição da cabeça da serpente com base na direção atualizada
+    x, y = snake[0]
+    if direction == 'CIMA':
+        y -= TAMANHO_DA_SERPENTE
+    elif direction == 'BAIXO':
+        y += TAMANHO_DA_SERPENTE
+    elif direction == 'ESQUERDA':
+        x -= TAMANHO_DA_SERPENTE
+    elif direction == 'DIREITA':
+        x += TAMANHO_DA_SERPENTE
+
+    # Verifica a colisão com as bordas
     done = x < 0 or x >= LARGURA or y < 0 or y >= ALTURA
 
     # Verifica colisão consigo mesma
-    if new_head in snake[1:]:  # A cabeça não pode colidir com o primeiro segmento (ela mesma)
+    if (x, y) in snake[1:]:
         done = True
 
     # Verifica se a comida foi consumida
-    eat = new_head == food
+    eat = (x, y) == food
     if eat:
         score += 1
+        # Gera nova posição para a comida
         food = (random.randint(0, (LARGURA - TAMANHO_DA_SERPENTE) // TAMANHO_DA_SERPENTE) * TAMANHO_DA_SERPENTE,
                 random.randint(0, (ALTURA - TAMANHO_DA_SERPENTE) // TAMANHO_DA_SERPENTE) * TAMANHO_DA_SERPENTE)
     else:
@@ -162,7 +166,7 @@ def take_action(snake, direction, action, score, food):
         snake.pop()
 
     # Adiciona a nova cabeça à serpente
-    snake.insert(0, new_head)
+    snake.insert(0, (x, y))
 
     # Define a recompensa
     reward = 0
@@ -174,7 +178,8 @@ def take_action(snake, direction, action, score, food):
     # Obtém o próximo estado
     next_state = get_state(snake, direction, food)
 
-    return next_state, reward, done, score, food
+    return next_state, reward, done, score, food, direction
+
 # Função de perda TD
 def compute_td_loss(batch_size):
     if len(replay_buffer) < batch_size:
@@ -223,10 +228,13 @@ if os.path.isfile(MODEL_FILENAME):
     # Se necessário, também carregue o valor de epsilon aqui
     # epsilon = ...
 
+last_direction = None
+
 # Loop principal do jogo e treinamento
 for episode in range(num_episodes):
     snake = [(LARGURA//2, ALTURA//2)]
     direction = 'DIREITA'
+    last_direction = direction
     food = (random.randint(0, (LARGURA-TAMANHO_DA_SERPENTE)//TAMANHO_DA_SERPENTE) * TAMANHO_DA_SERPENTE,
             random.randint(0, (ALTURA-TAMANHO_DA_SERPENTE)//TAMANHO_DA_SERPENTE) * TAMANHO_DA_SERPENTE)
     score = 0
@@ -234,8 +242,9 @@ for episode in range(num_episodes):
     for t in count():
         # Selecione e execute uma ação
         action = select_action(state, epsilon)
-        next_state, reward, done, score, food = take_action(snake, direction, action, score, food)
-
+        next_state, reward, done, score, food, direction = take_action(snake, direction, action, last_direction, score, food)
+        # Atualiza a última direção com a direção atual após o movimento
+        last_direction = direction
         # Observe o novo estado
         replay_buffer.push(state, action, reward, next_state, done)
         state = next_state
